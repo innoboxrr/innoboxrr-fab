@@ -40,103 +40,85 @@
 
 </template>
 
-<script>
+<script setup>
 
-export default {
+import { onBeforeUnmount, ref } from 'vue'
 
-    props: {
+const props = defineProps({
 
-        buttonColor: {
-            type: String,
-            default: 'red',
-        },
-
-        actions: {
-            type: Array,
-            default: () => [],
-        },
-
-        startPositionY: {
-        	type: Number,
-        	default: 50,
-        },
-
-        startPositionX: {
-        	type: Number,
-        	default: 50,
-        },
-
+    buttonColor: {
+        type: String,
+        default: 'red',
     },
 
-    emits: ['actionClick'],
-
-    data() {
-
-        return {
-
-            isDragging: false,
-
-            offsetX: 0,
-
-            offsetY: 0,
-
-            positionY: this.startPositionY,
-
-            positionX: this.startPositionX,
-
-        }
-
+    actions: {
+        type: Array,
+        default: () => [],
     },
 
-    methods: {
-
-        startDrag(event) {
-
-            this.isDragging = true;
-
-            const rect = this.$refs.fabWrapper.getBoundingClientRect();
-
-            this.offsetX = event.clientX - rect.left;
-
-            this.offsetY = event.clientY - rect.top - 55;
-
-            window.addEventListener('mousemove', this.drag);
-
-            window.addEventListener('mouseup', this.endDrag);
-
-        },
-
-        endDrag() {
-
-            this.isDragging = false;
-
-            window.removeEventListener('mousemove', this.drag);
-
-            window.removeEventListener('mouseup', this.endDrag);
-
-        },
-
-        drag(event) {
-
-            if(this.isDragging){
-
-                this.positionX = event.clientX - this.offsetX;
-
-                this.positionY = window.innerHeight - event.clientY + this.offsetY;
-
-            }
-
-        },
-
-        actionClick(action) {
-
-        	this.$emit('actionClick', action);
-
-        }
-
+    startPositionY: {
+    	type: Number,
+    	default: 50,
     },
 
-};
+    startPositionX: {
+    	type: Number,
+    	default: 50,
+    },
+
+})
+
+const emit = defineEmits(['actionClick'])
+
+const fabWrapper = ref(null)
+
+const isDragging = ref(false)
+
+const offsetX = ref(0)
+const offsetY = ref(0)
+
+const positionY = ref(props.startPositionY)
+const positionX = ref(props.startPositionX)
+
+const drag = (event) => {
+
+    if (! isDragging.value) {
+        return
+    }
+
+    positionX.value = event.clientX - offsetX.value
+    positionY.value = window.innerHeight - event.clientY + offsetY.value
+
+}
+
+const endDrag = () => {
+
+    isDragging.value = false
+
+    window.removeEventListener('mousemove', drag)
+    window.removeEventListener('mouseup', endDrag)
+
+}
+
+const startDrag = (event) => {
+
+    isDragging.value = true
+
+    const rect = fabWrapper.value.getBoundingClientRect()
+
+    offsetX.value = event.clientX - rect.left
+    offsetY.value = event.clientY - rect.top - 55
+
+    window.addEventListener('mousemove', drag)
+    window.addEventListener('mouseup', endDrag)
+
+}
+
+// Si el componente se desmonta a media arrastre, los listeners de window
+// quedaban colgados apuntando a una instancia muerta.
+onBeforeUnmount(endDrag)
+
+const actionClick = (action) => emit('actionClick', action)
 
 </script>
 

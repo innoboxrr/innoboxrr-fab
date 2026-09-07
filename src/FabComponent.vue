@@ -22,49 +22,57 @@
   </div>
 </template>
 
-<script>
-export default {
-  props: {
-    buttonColor: {
-      type: String,
-      default: 'red',
-    },
-    actions: {
-      type: Array,
-      default: () => [],
-    },
+<script setup>
+
+import { computed } from 'vue'
+
+const props = defineProps({
+  buttonColor: {
+    type: String,
+    default: 'red',
   },
-  computed: {
-    fabWrapperClass() {
-      return ['fab-wrapper', this.positionClass, this.customClass].join(' ');
-    },
-    positionClass() {
-      switch (this.position) {
-        case 'bottom-left':
-          return 'bottom-4 left-4';
-        case 'bottom-right':
-          return 'bottom-4 right-4';
-        case 'top-left':
-          return 'top-4 left-4';
-        case 'top-right':
-          return 'top-4 right-4';
-        default:
-          return this.customPositionClass;
-      }
-    },
-    actionsBottom() {
-      if (this.position.includes('top')) {
-        return '120%';
-      } else {
-        return 'auto';
-      }
-    },
-    customClass() {
-      // Agrega la clase de Tailwind CSS para el z-index personalizado
-      return this.customPositionClass || '';
-    },
+  actions: {
+    type: Array,
+    default: () => [],
   },
-};
+  /**
+   * positionClass y actionsBottom ya leian `position` y
+   * `customPositionClass`, pero ninguna estaba declarada como prop: el
+   * switch caia siempre en default y fabWrapperClass acababa siendo
+   * "fab-wrapper  ", asi que el posicionamiento nunca se aplicaba.
+   */
+  position: {
+    type: String,
+    default: 'bottom-right',
+    validator: (value) => [
+      'bottom-left', 'bottom-right', 'top-left', 'top-right', 'custom',
+    ].includes(value),
+  },
+  customPositionClass: {
+    type: String,
+    default: '',
+  },
+})
+
+const POSITIONS = {
+  'bottom-left': 'bottom-4 left-4',
+  'bottom-right': 'bottom-4 right-4',
+  'top-left': 'top-4 left-4',
+  'top-right': 'top-4 right-4',
+}
+
+const positionClass = computed(() => POSITIONS[props.position] ?? props.customPositionClass)
+
+const fabWrapperClass = computed(
+  () => ['fab-wrapper', positionClass.value, props.customPositionClass].filter(Boolean).join(' ')
+)
+
+// Sin la guarda, un `position` ausente lanzaba TypeError al llamar a
+// .includes() sobre undefined.
+const actionsBottom = computed(() => props.position?.includes('top') ? '120%' : 'auto')
+
+defineExpose({ actionsBottom })
+
 </script>
 
 <style scoped>
